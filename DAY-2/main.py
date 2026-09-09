@@ -1,1 +1,2 @@
-print("hello quantam vector...?")
+a = "28"
+print(a)
