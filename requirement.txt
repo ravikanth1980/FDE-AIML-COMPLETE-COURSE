@@ -28,3 +28,6 @@ langchain-astradb
 faiss-cpu
 langchain_postgres
 torchvision
+langchain
+duckduckgo-search
+langchain_ollama

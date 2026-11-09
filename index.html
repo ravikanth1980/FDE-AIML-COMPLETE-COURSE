@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkShift | AI & The Future of Employment</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="navbar">
+    <div class="logo">Work<span>Shift</span></div>
+    <nav>
+      <a href="#stats">Impact Stats</a>
+      <a href="#matrix">Risk Matrix</a>
+      <a href="#calculator">Risk Assessment</a>
+      <a href="nonexistent-page.html" class="nav-demo">Test 404</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section class="hero">
+      <span class="badge">Workforce Intelligence 2026</span>
+      <h1>Is AI Taking Your Job, or Just Changing It?</h1>
+      <p>Analyze how automation, generative models, and agentic workflows are restructuring the global labor market across white-collar and technical industries.</p>
+      <div class="cta-group">
+        <a href="#calculator" class="btn btn-primary">Check Your Role</a>
+        <a href="#matrix" class="btn btn-secondary">Explore Industry Risk</a>
+      </div>
+    </section>
+
+    <!-- Key Metrics Grid -->
+    <section id="stats" class="stats-section">
+      <div class="stat-card">
+        <h3>85M+</h3>
+        <p>Jobs displaced or fundamentally changed by automation by 2026–2030.</p>
+      </div>
+      <div class="stat-card">
+        <h3>97M</h3>
+        <p>New roles emerging focused on AI orchestration, data, and human oversight.</p>
+      </div>
+      <div class="stat-card">
+        <h3>60%</h3>
+        <p>Of current occupations have at least 30% of work activities automatable.</p>
+      </div>
+      <div class="stat-card">
+        <h3>5x</h3>
+        <p>Productivity multiple captured by senior, AI-augmented specialists vs juniors.</p>
+      </div>
+    </section>
+
+    <!-- Vulnerability Matrix -->
+    <section id="matrix" class="matrix-section">
+      <div class="section-header">
+        <h2>Industry Vulnerability & Transition Spectrum</h2>
+        <p>How automation exposure correlates with augmentation vs complete obsolescence.</p>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card high-risk">
+          <div class="risk-label">High Displacement Pressure</div>
+          <h3>Repetitive Data & Routine Text</h3>
+          <ul>
+            <li><strong>Data Entry & Basic Bookkeeping:</strong> Automated OCR and autonomous reconciliation scripts.</li>
+            <li><strong>Commodity Copywriting:</strong> Synthetic text engines handling drafts, product tags, and SEO filler.</li>
+            <li><strong>Tier 1 Support:</strong> LLM agents handling up to 70% of standard ticket volume.</li>
+          </ul>
+        </div>
+
+        <div class="card mod-risk">
+          <div class="risk-label">Augmentation & Restructuring</div>
+          <h3>Software & Knowledge Work</h3>
+          <ul>
+            <li><strong>Junior Engineering:</strong> Code generation shifts tasks toward reviewing and debugging.</li>
+            <li><strong>Paralegal & Research:</strong> Semantic document search and automated compliance flagging.</li>
+            <li><strong>Graphic Design:</strong> Shift from asset generation to art direction and generative styling.</li>
+          </ul>
+        </div>
+
+        <div class="card low-risk">
+          <div class="risk-label">Resilient & Expanding Roles</div>
+          <h3>High Empathy, Physical & Strategy</h3>
+          <ul>
+            <li><strong>Skilled Trades:</strong> Electricians, plumbers, and specialized HVAC technicians.</li>
+            <li><strong>Healthcare Practitioners:</strong> Surgeons, nurses, and interactive patient care specialists.</li>
+            <li><strong>AI Safety & System Architects:</strong> Prompt engineers, compliance officers, and autonomous fleet managers.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Role Risk Assessment Tool -->
+    <section id="calculator" class="calc-section">
+      <div class="calc-card">
+        <h2>Role Automation Scorecard</h2>
+        <p>Select your primary job characteristics to evaluate automation exposure vs augmentation leverage.</p>
+
+        <form id="riskForm">
+          <div class="form-group">
+            <label for="workType">Primary Nature of Daily Output:</label>
+            <select id="workType" required>
+              <option value="data">Standardized text, data entry, routine coding</option>
+              <option value="creative">Creative concepting, strategic leadership, high-level code architecture</option>
+              <option value="physical">Hands-on physical craft, complex manual manipulation</option>
+              <option value="interpersonal">High-stakes negotiations, clinical empathy, psychological care</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="aiUsage">Current Personal AI Integration:</label>
+            <select id="aiUsage" required>
+              <option value="none">I don't use AI tools at all</option>
+              <option value="casual">I use LLMs for quick drafts or search questions</option>
+              <option value="expert">I build agents, orchestrate pipelines, or leverage tools daily</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full">Evaluate Exposure</button>
+        </form>
+
+        <div id="riskResult" class="result-box hidden">
+          <h4 id="resultTitle"></h4>
+          <p id="resultDesc"></p>
+          <div class="progress-bar-container">
+            <div id="resultBar" class="progress-bar"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 WorkShift Insights. Static application optimized for cloud distribution.</p>
+  </footer>
+
+  <script>
+    document.getElementById('riskForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const workType = document.getElementById('workType').value;
+      const aiUsage = document.getElementById('aiUsage').value;
+      const resultBox = document.getElementById('riskResult');
+      const title = document.getElementById('resultTitle');
+      const desc = document.getElementById('resultDesc');
+      const bar = document.getElementById('resultBar');
+
+      let riskPercentage = 50;
+      let titleText = "";
+      let descText = "";
+      let barColor = "#f59e0b";
+
+      if (workType === "data") {
+        riskPercentage = aiUsage === "expert" ? 45 : 85;
+      } else if (workType === "creative") {
+        riskPercentage = aiUsage === "expert" ? 20 : 50;
+      } else if (workType === "physical") {
+        riskPercentage = 15;
+      } else if (workType === "interpersonal") {
+        riskPercentage = 12;
+      }
+
+      if (riskPercentage > 65) {
+        titleText = "High Replacement Exposure";
+        descText = "Your tasks involve structured, repetitive digital artifacts that current multimodal models automate easily. Pivot to workflow orchestration and strategic review.";
+        barColor = "#ef4444";
+      } else if (riskPercentage >= 35) {
+        titleText = "Augmentation Zone (Moderate Risk)";
+        descText = "AI will not take your job outright, but a specialist using AI will likely replace someone who doesn't. Deepen your system architecture and automation skills.";
+        barColor = "#f59e0b";
+      } else {
+        titleText = "High Resilience / Low Exposure";
+        descText = "Your role relies on physical dexterity, deep empathy, or contextual judgment that current AI systems struggle to replicate autonomously.";
+        barColor = "#10b981";
+      }
+
+      title.textContent = titleText;
+      desc.textContent = descText;
+      bar.style.width = riskPercentage + "%";
+      bar.style.backgroundColor = barColor;
+
+      resultBox.classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>

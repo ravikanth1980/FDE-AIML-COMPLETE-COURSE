@@ -8,14 +8,10 @@ from sqlalchemy import text
 load_dotenv(override=True)
 
 from rag_core import (
-    DEFAULT_EMBEDDING_MODEL,
     build_database_url,
     create_chat_model,
     create_db_engine,
-    create_embeddings,
-    create_vector_store,
-    stream_rag_answer,
-    sync_database_to_vector_store,
+    stream_sql_answer,
 )
 
 
@@ -28,20 +24,14 @@ DB_USER = "quantam"
 CHAT_MODEL = "openai/gpt-oss-120b"
 
 st.set_page_config(
-    page_title="PostgreSQL RAG Assistant",
+    page_title="PostgreSQL Data Assistant",
     page_icon="🧠",
     layout="wide",
 )
 
 
-@st.cache_resource(show_spinner=False)
-def load_embedding_model():
-    """Load and reuse the local embedding model for this app process."""
-    return create_embeddings()
-
-
-def connect_and_sync(password: str, groq_api_key: str) -> None:
-    """Connect to PostgreSQL and index all eligible database tables."""
+def connect_database(password: str, groq_api_key: str) -> None:
+    """Connect to PostgreSQL for read-only SQL question answering."""
     groq_api_key = groq_api_key.strip()
     if not password:
         st.error("Enter the PostgreSQL password to connect.")
@@ -58,81 +48,44 @@ def connect_and_sync(password: str, groq_api_key: str) -> None:
         password=password,
     )
 
-    with st.status(
-        "Connecting and indexing database tables...",
-        expanded=True,
-    ) as status:
-        progress = st.empty()
-        progress.write("Checking PostgreSQL connection...")
-        engine = create_db_engine(database_url)
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
+    engine = create_db_engine(database_url)
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
 
-        progress.write(
-            "Loading Hugging Face model (first run may download it)..."
-        )
-        embeddings = load_embedding_model()
-        progress.write("Initializing pgvector...")
-        vector_store = create_vector_store(
-            connection=engine,
-            embeddings=embeddings,
-        )
+    llm = create_chat_model(
+        provider="groq",
+        api_key=groq_api_key,
+        model=CHAT_MODEL,
+        temperature=0,
+    )
 
-        def report_progress(message: str) -> None:
-            progress.write(message)
-
-        progress.write("Scanning and indexing database tables...")
-        stats = sync_database_to_vector_store(
-            engine=engine,
-            vector_store=vector_store,
-            progress_callback=report_progress,
-        )
-        progress.write("Initializing Groq chat model...")
-        llm = create_chat_model(
-            provider="groq",
-            api_key=groq_api_key,
-            model=CHAT_MODEL,
-            temperature=0,
-        )
-        status.update(
-            label="Database indexing completed.",
-            state="complete",
-            expanded=False,
-        )
-
-    st.session_state.rag = {
+    st.session_state.database_qa = {
         "engine": engine,
-        "vector_store": vector_store,
         "llm": llm,
         "chat_model": CHAT_MODEL,
-        "embedding_model": DEFAULT_EMBEDDING_MODEL,
-        "top_k": 5,
     }
-    st.session_state.sync_stats = stats
 
 
-def render_sources(documents) -> None:
-    """Show the database tables and rows that support an answer."""
-    if not documents:
-        return
-
-    with st.expander(f"Retrieved Sources ({len(documents)} chunks)"):
-        for index, document in enumerate(documents, start=1):
-            metadata = document.metadata
-            st.markdown(
-                f"**[S{index}]** "
-                f"Table: `{metadata.get('source_schema', 'unknown')}."
-                f"{metadata.get('source_table', 'unknown')}` · "
-                f"Record ID: `{metadata.get('source_pk', 'unknown')}`"
-            )
-            st.code(document.page_content, language="text")
+def render_sql_results(query: str, rows: list[dict]) -> None:
+    """Show the exact SQL and rows used to answer a database question."""
+    with st.expander("SQL query and database results"):
+        st.code(query, language="sql")
+        if rows:
+            st.dataframe(rows, use_container_width=True)
+        else:
+            st.info("The query returned no rows.")
 
 
 def render_chat() -> None:
-    """Render chat history and stream Groq RAG responses."""
+    """Render chat history and stream answers grounded in SQL results."""
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
+            if message.get("sql_query"):
+                render_sql_results(
+                    message["sql_query"],
+                    message.get("sql_rows", []),
+                )
 
     question = st.chat_input("Ask a question about your PostgreSQL data...")
     if not question:
@@ -146,17 +99,21 @@ def render_chat() -> None:
 
     with st.chat_message("assistant"):
         try:
-            rag = st.session_state.rag
-            documents, token_stream = stream_rag_answer(
+            database_qa = st.session_state.database_qa
+            sql_query, sql_rows, token_stream = stream_sql_answer(
                 question=question,
-                vector_store=rag["vector_store"],
-                llm=rag["llm"],
-                top_k=rag["top_k"],
+                engine=database_qa["engine"],
+                llm=database_qa["llm"],
             )
             answer = st.write_stream(token_stream)
-            render_sources(documents)
+            render_sql_results(sql_query, sql_rows)
             st.session_state.messages.append(
-                {"role": "assistant", "content": answer}
+                {
+                    "role": "assistant",
+                    "content": answer,
+                    "sql_query": sql_query,
+                    "sql_rows": sql_rows,
+                }
             )
         except Exception as exc:
             st.error(f"Could not answer the question: {exc}")
@@ -164,9 +121,9 @@ def render_chat() -> None:
 
 def main() -> None:
     """Render the PostgreSQL RAG application."""
-    st.title("🧠 PostgreSQL RAG Assistant")
+    st.title("🧠 PostgreSQL Data Assistant")
     st.caption(
-        "PostgreSQL | pgvector | Hugging Face Embeddings | Groq"
+        "PostgreSQL | Read-only SQL answers | Groq"
     )
     st.write(
         f"Database: `{DB_NAME}` on `{DB_HOST}:{DB_PORT}` "
@@ -186,39 +143,26 @@ def main() -> None:
             type="password",
         )
         submitted = st.form_submit_button(
-            "Connect and index all tables",
+            "Connect to PostgreSQL",
             type="primary",
         )
 
     if submitted:
         try:
-            connect_and_sync(password, groq_api_key)
+            connect_database(password, groq_api_key)
         except Exception as exc:
-            st.error(f"Connection or indexing failed: {exc}")
+            st.error(f"Database connection failed: {exc}")
 
-    if "sync_stats" in st.session_state:
-        stats = st.session_state.sync_stats
-        st.success("Database indexing completed.")
-        st.caption(
-            f"Tables indexed: {stats['indexed_tables']} · "
-            f"Tables skipped (no indexable columns): "
-            f"{stats['skipped_tables']}"
-        )
-        changed, unchanged, deleted = st.columns(3)
-        changed.metric("Changed Rows", stats["changed_rows"])
-        unchanged.metric("Unchanged Rows", stats["unchanged_rows"])
-        deleted.metric("Deleted Rows", stats["deleted_rows"])
-
-    if "rag" not in st.session_state:
+    if "database_qa" not in st.session_state:
         st.info(
             "Enter the PostgreSQL password and Groq API key, then connect "
-            "to index all tables in the database."
+            "to ask questions against live database records."
         )
         return
 
     st.caption(
         f"Model: Groq `{CHAT_MODEL}` · "
-        f"Embeddings: `{DEFAULT_EMBEDDING_MODEL}`"
+        "Answers are generated from live, read-only SQL query results."
     )
     render_chat()
 
