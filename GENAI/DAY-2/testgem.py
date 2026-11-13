@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+
+
 
 # ---------------------------------------------------------
 # 1. Observability Configuration (LangSmith & Gemini)
@@ -132,7 +135,7 @@ with st.sidebar:
     
     model_name = st.selectbox(
         "Model Tier",
-        ["gemini-2.5-flash", "gemini-2.5-pro"],
+        ["gemini-2.5-flash", "gemini-2.5-pro","openai/gpt-oss-120b"],
         index=0,
     )
 
@@ -214,10 +217,10 @@ prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-llm = ChatGoogleGenerativeAI(
+llm = ChatGroq(
     model=model_name,
     temperature=temperature,
-    max_output_tokens=max_tokens,
+    max_tokens=200
 )
 
 # Pipe without StrOutputParser so AIMessageChunk metadata stays accessible

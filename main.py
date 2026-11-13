@@ -1,3 +1,1 @@
-from PYTHON.test.bank.login import register
-
-print(register())
+print("Hello Wordl!")
